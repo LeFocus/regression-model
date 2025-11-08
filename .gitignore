@@ -2,4 +2,6 @@
 .idea/
 mp_env/
 .env/
+data.txt
+*.png
 __pycache__/

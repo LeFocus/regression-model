@@ -1,2 +1,5 @@
 .venv/
 .idea/
+mp_env/
+.env/
+__pycache__/

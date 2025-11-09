@@ -45,8 +45,7 @@ while keep_running:
     for i in range(4):
         if sample[i] == -1000:
             sample[i] = None
-    print(sample)
-    time.sleep(1/256)
+    time.sleep(1/300)
     array.append(sample)
 
 with open("data.txt", "w") as f:

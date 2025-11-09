@@ -50,6 +50,7 @@ pupil_file = "latest_pupil.txt"
 
 while keep_running:
     sample, timestamp = inlet.pull_sample()
+    print(sample)
 
     # Replace invalid EEG values
     sample = [None if v == -1000 else v for v in sample]

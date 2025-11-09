@@ -3,7 +3,6 @@ import mne
 from scipy.integrate import simps
 import pandas as pd
 
-# --- 1. Load Data (Same as your code) ---
 data = []
 with open("from_kiet.txt", "r") as f:
     for line in f:
@@ -46,13 +45,11 @@ psd = spectrum.get_data()
 freqs = spectrum.freqs
 eeg_ch_names = epochs.ch_names
 
-# --- 4. Loop over epochs and store features ---
 results = []
 # Loop over each epoch
 for i in range(len(epochs)):
     epoch_features = {'epoch_id': i}
 
-    # ⚡ NEW: Lists to hold powers for the 'overall' calculation
     all_alpha_powers = []
     all_beta_powers = []
 
@@ -72,7 +69,6 @@ for i in range(len(epochs)):
             epoch_features[f'{ch_name}_{band}'] = power
             channel_band_powers.append(power)
 
-            # ⚡ NEW: Add to our overall lists
             if band == 'alpha':
                 all_alpha_powers.append(power)
             elif band == 'beta':

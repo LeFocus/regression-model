@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-import csv
 import os
-import joblib
 from typing import List, Dict, Optional, Tuple
 import aiofiles
 import json
@@ -12,15 +10,10 @@ import combine_eeg_pupil
 import run_inference
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 
-# ============== CONFIG ==============
 BUNDLE_PATH = os.environ.get("BUNDLE_PATH", "models/xgb_focus_reg.pkl")
 CALIB_DIR   = os.environ.get("CALIB_DIR", "calibration")
 os.makedirs(CALIB_DIR, exist_ok=True)
 
-# Name of your extractor module + function.
-# Change these two lines to match your actual API.
-EXTRACTOR_MODULE = os.environ.get("EXTRACTOR_MODULE", "combine_eeg_pupil")
-EXTRACTOR_FUNC   = os.environ.get("EXTRACTOR_FUNC", "extract_features_from_files")
 
 UPLOAD_DIRECTORY = "raw_uploads"
 BIAS_DIRECTORY = "bias"
@@ -28,13 +21,8 @@ BIAS_DIRECTORY = "bias"
 # Ensure the upload directory exists when the application starts
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-# Expected signature:
-#   df = extract_features_from_files(eeg_csv_path: str, pupil_csv_path: str) -> pandas.DataFrame
-# The returned df must have the **same feature columns** used in training (plus any metadata like start_time, label, etc.)
 
 ALLOW_UNCALIBRATED = True  # allow predictions even if no per-user calibration is saved
-
-
 
 app = FastAPI(title="Focus Inference API (raw file version)", version="1.0")
 

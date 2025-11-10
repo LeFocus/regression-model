@@ -20,7 +20,8 @@ BIAS_DIRECTORY = "bias"
 
 # Ensure the upload directory exists when the application starts
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
-
+os.makedirs(BIAS_DIRECTORY, exist_ok=True)
+os.makedirs(f"{UPLOAD_DIRECTORY}1", exist_ok=True)
 
 ALLOW_UNCALIBRATED = True  # allow predictions even if no per-user calibration is saved
 

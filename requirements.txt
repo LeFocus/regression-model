@@ -33,7 +33,6 @@ matplotlib==3.9.4
 mediapipe==0.10.21
 ml_dtypes==0.5.3
 mne==1.8.0
-muselsl==2.3.1
 numpy==1.26.4
 opencv-contrib-python==4.11.0.86
 opencv-python==4.12.0.88
@@ -52,13 +51,6 @@ pydantic_core==2.41.5
 pygatt==5.0.0
 pylsl==1.17.6
 pynput==1.8.1
-pyobjc-core==12.0
-pyobjc-framework-ApplicationServices==12.0
-pyobjc-framework-Cocoa==12.0
-pyobjc-framework-CoreBluetooth==12.0
-pyobjc-framework-CoreText==12.0
-pyobjc-framework-libdispatch==12.0
-pyobjc-framework-Quartz==12.0
 pyparsing==3.2.5
 pyserial==3.5
 python-dateutil==2.9.0.post0

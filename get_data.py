@@ -13,7 +13,7 @@ pupil_data = []  # Will store [timestamp, left_diam_px, right_diam_px]
 keep_running = True
 
 
-# --- 2. Helper Function for Pupil Diameter ---
+# --- 2. Helper Function for Pupil Diameter ---q
 def get_pixel_distance(lm1, lm2, w, h):
     """Calculates the pixel distance between two mediapipe landmarks."""
     x1, y1 = int(lm1.x * w), int(lm1.y * h)
@@ -24,10 +24,22 @@ def get_pixel_distance(lm1, lm2, w, h):
 # --- 3. pynput Key Listener (Thread 1) ---
 def on_press(key):
     global keep_running
-    print(f"Key {key} pressed. Stopping all streams.")
-    keep_running = False
-    return False
+    print(f"Key {key} pressed.")  # Good for debugging
 
+    try:
+        # Check if the character of the key is 'q'
+        if key.char == 'q':
+            print("Stop key 'q' pressed. Stopping all streams.")
+            keep_running = False
+            return False  # Stop the listener thread
+
+    except AttributeError:
+        # This catches special keys (e.g., Shift, Ctrl, Esc)
+        # that don't have a .char attribute
+        pass
+
+    # If it's any other key, the function ends (implicitly returning None),
+    # which tells the listener to keep running.
 
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
@@ -140,14 +152,14 @@ finally:
 
     # Write EEG data
     print(f"Saving {len(eeg_data)} EEG samples to eeg.csv...")
-    with open("eeg.csv", "w", newline='') as f:
+    with open("ben_relaxed/eeg.csv", "w", newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['timestamp', 'TP9', 'AF7', 'AF8', 'TP10', 'AUX1'])
         writer.writerows(eeg_data)
 
     # Write Pupil data
     print(f"Saving {len(pupil_data)} pupil samples to pupil.csv...")
-    with open("pupil.csv", "w", newline='') as f:
+    with open("ben_relaxed/pupil.csv", "w", newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['timestamp', 'left_pupil_diameter_px', 'right_pupil_diameter_px'])
         writer.writerows(pupil_data)

@@ -78,15 +78,12 @@ for i in range(len(epochs)):
         mean_band_power = np.mean(channel_band_powers)
         epoch_features[f'{ch_name}_mean_band_power'] = mean_band_power
 
-        # ⚡ NEW: Calculate per-channel alpha/beta ratio
         alpha_power = epoch_features[f'{ch_name}_alpha']
         beta_power = epoch_features[f'{ch_name}_beta']
 
-        # Add safety check for division by zero
         ratio = alpha_power / beta_power if beta_power > 0 else np.nan
         epoch_features[f'{ch_name}_alpha_beta_ratio'] = ratio
 
-    # ⚡ NEW: Calculate the "overall" alpha/beta ratio for this epoch
     total_alpha = np.sum(all_alpha_powers)
     total_beta = np.sum(all_beta_powers)
 

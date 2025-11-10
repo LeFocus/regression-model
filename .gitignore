@@ -2,6 +2,6 @@
 .idea/
 mp_env/
 .env/
-more_from_kiet.txt
+training/more_from_kiet.txt
 *.png
 __pycache__/

@@ -60,6 +60,106 @@ EARLY_STOPPING_ROUNDS = 150
 # HELPERS
 # =========================
 
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import RobustScaler
+
+def pick_group_column(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
+    for c in candidates:
+        if c in df.columns:
+            if c == "start_time":
+                # use DATE for grouping
+                return c
+            return c
+    return None
+
+def group_keys(series: pd.Series, is_start_time: bool) -> pd.Series:
+    if is_start_time:
+        s = pd.to_datetime(series, errors="coerce", utc=True).dt.date.astype(str)
+        return s.fillna("unknown")
+    return series.astype(str)
+
+@dataclass
+class NormalizerBundle:
+    mode: str
+    feature_cols: List[str]
+    group_col: Optional[str]
+    group_stats: Optional[Dict[str, Tuple[np.ndarray, np.ndarray]]]  # {group: (mean, std)}
+    global_scaler: Optional[RobustScaler]
+
+    def transform_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        X = df[self.feature_cols].copy()
+
+        if self.mode == "none":
+            return X
+
+        # Per-group z first (if available)
+        if self.mode.startswith("group_z") and self.group_col is not None and self.group_stats:
+            is_date = (self.group_col == "start_time")
+            keys = group_keys(df[self.group_col], is_date)
+            Xz = X.copy()
+            for g in keys.unique():
+                idx = (keys == g)
+                if g in self.group_stats:
+                    mu, sd = self.group_stats[g]
+                    sd_safe = np.where(sd > 0, sd, 1.0)
+                    Xz.loc[idx, self.feature_cols] = (X.loc[idx, self.feature_cols] - mu) / sd_safe
+            X = Xz
+
+        # Global robust as fallback / second stage
+        if self.mode in ("group_z_then_global_robust", "global_robust"):
+            if self.global_scaler is None:
+                raise RuntimeError("Global scaler missing in NormalizerBundle.")
+            X[:] = self.global_scaler.transform(X.values)
+
+        return X
+
+
+def fit_normalizer(
+    train_df: pd.DataFrame,
+    feature_cols: List[str],
+    normalize_mode: str,
+    group_col_candidates: List[str]
+) -> NormalizerBundle:
+    if normalize_mode == "none":
+        return NormalizerBundle("none", feature_cols, None, None, None)
+
+    # choose group column
+    group_col = pick_group_column(train_df, group_col_candidates) if normalize_mode.startswith("group_z") else None
+
+    # compute per-group mean/std (train only)
+    group_stats = None
+    if group_col is not None:
+        is_date = (group_col == "start_time")
+        keys = group_keys(train_df[group_col], is_date)
+        group_stats = {}
+        for g, sub in train_df.assign(_k=keys).groupby("_k"):
+            Xg = sub[feature_cols].to_numpy()
+            mu = np.nanmean(Xg, axis=0)
+            sd = np.nanstd(Xg, axis=0, ddof=0)
+            group_stats[str(g)] = (mu, sd)
+
+    # fit global robust scaler on TRAIN (after applying group z if requested)
+    if normalize_mode in ("group_z_then_global_robust", "global_robust"):
+        tmp = train_df[feature_cols].copy()
+        if group_stats is not None:
+            is_date = (group_col == "start_time")
+            keys = group_keys(train_df[group_col], is_date)
+            for g in keys.unique():
+                idx = (keys == g)
+                if str(g) in group_stats:
+                    mu, sd = group_stats[str(g)]
+                    sd_safe = np.where(sd > 0, sd, 1.0)
+                    tmp.loc[idx, feature_cols] = (tmp.loc[idx, feature_cols] - mu) / sd_safe
+        scaler = RobustScaler(with_centering=True, with_scaling=True, quantile_range=(25.0, 75.0))
+        scaler.fit(tmp.values)
+    else:
+        scaler = None
+
+    return NormalizerBundle(normalize_mode, feature_cols, group_col, group_stats, scaler)
+
 
 def load_and_concat(paths):
     dfs = []
@@ -243,15 +343,26 @@ def main():
 
     # 3) Features
     feature_cols = select_features(train_df)
-    X_train_full = train_df[feature_cols].copy()
-    y_train_full = train_df["label"].astype(float).values
-    X_test = test_df[feature_cols].copy()
-    y_test = test_df["label"].astype(float).values
+    # Fit normalizer on TRAIN ONLY
+    normalizer = fit_normalizer(
+        train_df=train_df,
+        feature_cols=feature_cols,
+        normalize_mode=NORMALIZE_MODE,
+        group_col_candidates=GROUP_COL_CANDIDATES
+    )
 
-    # Impute NaNs
+    # Apply normalization
+    X_train_full_norm = normalizer.transform_df(train_df)  # returns DataFrame with feature_cols
+    X_test_norm = normalizer.transform_df(test_df)
+
+    # Then impute NaNs after normalization
+    from sklearn.impute import SimpleImputer
     imp = SimpleImputer(strategy="median")
-    X_train_full_imp = imp.fit_transform(X_train_full)
-    X_test_imp = imp.transform(X_test)
+    X_train_full_imp = imp.fit_transform(X_train_full_norm)
+    X_test_imp = imp.transform(X_test_norm)
+
+    y_train_full = train_df["label"].astype(float).values
+    y_test = test_df["label"].astype(float).values
 
     # 4) Internal validation (safe)
     internal = safe_make_internal_val(X_train_full_imp, y_train_full, train_df)
@@ -318,8 +429,11 @@ def main():
 
     # 7) Save bundle + features
     bundle_path = os.path.join(MODEL_DIR, MODEL_NAME)
-    joblib.dump({"booster": booster, "imputer": imp, "features": feature_cols}, bundle_path)
-    print(f"\n✅ Saved model bundle to {bundle_path}")
+    joblib.dump(
+        {"booster": booster, "imputer": imp, "features": feature_cols, "normalizer": normalizer},
+        bundle_path
+    )
+    print(f"\nSaved model bundle to {bundle_path}")
 
     with open(os.path.join(MODEL_DIR, FEATURES_JSON), "w") as f:
         json.dump({"features": feature_cols}, f, indent=2)

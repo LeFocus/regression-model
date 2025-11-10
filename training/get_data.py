@@ -152,14 +152,14 @@ finally:
 
     # Write EEG data
     print(f"Saving {len(eeg_data)} EEG samples to eeg.csv...")
-    with open("ben_relaxed/eeg.csv", "w", newline='') as f:
+    with open("../ben_relaxed/eeg.csv", "w", newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['timestamp', 'TP9', 'AF7', 'AF8', 'TP10', 'AUX1'])
         writer.writerows(eeg_data)
 
     # Write Pupil data
     print(f"Saving {len(pupil_data)} pupil samples to pupil.csv...")
-    with open("ben_relaxed/pupil.csv", "w", newline='') as f:
+    with open("../ben_relaxed/pupil.csv", "w", newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['timestamp', 'left_pupil_diameter_px', 'right_pupil_diameter_px'])
         writer.writerows(pupil_data)

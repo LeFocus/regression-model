@@ -4,9 +4,7 @@ from scipy.integrate import simps
 import pandas as pd
 import os
 
-# --- USER SETTINGS ---
-DIRECTORY = "ben_relaxed"
-OUTPUT_DIRECTORY = DIRECTORY
+
 WINDOW_DURATION = 4.0
 SFREQ = 256.0
 PUPIL_NORMALIZATION = "zscore"
@@ -82,9 +80,10 @@ def band_mean_power(psd, freqs, fmin, fmax):
         return np.nan
     return simps(psd[sel], freqs[sel]) / (fmax - fmin)
 
-def main():
-    eeg_path = os.path.join(DIRECTORY, "eeg.csv")
-    pupil_path = os.path.join(DIRECTORY, "pupil.csv")
+def combine_eeg_pupil_raw(directory):
+    directory = directory
+    eeg_path = os.path.join(directory, "eeg.csv")
+    pupil_path = os.path.join(directory, "pupil.csv")
 
     print("Starting feature extraction...")
     raw = load_eeg_to_mne(eeg_path)
@@ -170,14 +169,11 @@ def main():
 
     df["label"] = 0
 
-    os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
-    out = os.path.join(OUTPUT_DIRECTORY, "combined_features_fixed.csv")
+    out = os.path.join(directory, "combined.csv")
     df.to_csv(out, index=False)
 
     kept = len(df)
-    print(f"\n✅ Saved {kept} rows to {out}")
     if REJECT_EMG_WINDOWS:
         print(f"ℹ️ Rejected {reject_count} EMG-heavy windows based on narrow-beta dominance.")
-
-if __name__ == "__main__":
-    main()
+    print(f"\n✅ Saved {kept} rows to {out}")
+    return f"{directory}/combined.csv"

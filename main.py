@@ -24,9 +24,11 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 ALLOW_UNCALIBRATED = True  # allow predictions even if no per-user calibration is saved
 
-app = FastAPI(title="Focus Inference API (raw file version)", version="1.0")
+app = FastAPI(title="Focus Inference API", version="1.0")
 
-
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "api is running."}
 @app.post("/calibrate_raw")
 async def calibrate_raw(user_id: str = Form(...),
     file1: UploadFile = File(..., description="eeg_Focus"),
@@ -114,7 +116,6 @@ async def predict_raw(
             detail="Invalid file type. Both files must be .csv"
         )
 
-    # We prepend the user_id to help organize files and avoid naming conflicts
     filepath1 = os.path.join(output, f"{user_id}_{eeg.filename}")
     filepath2 = os.path.join(output, f"{user_id}_{pupil.filename}")
 

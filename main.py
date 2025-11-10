@@ -34,34 +34,10 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 ALLOW_UNCALIBRATED = True  # allow predictions even if no per-user calibration is saved
 
-# ============== LOAD BUNDLE ==============
-try:
-    _bundle = joblib.load(BUNDLE_PATH)
-except Exception as e:
-    raise RuntimeError(f"Failed to load model bundle at {BUNDLE_PATH}: {e}")
 
-_booster = _bundle["booster"]            # xgboost.Booster
-_imputer = _bundle["imputer"]            # SimpleImputer
-_features: List[str] = _bundle["features"]
-_normalizer = _bundle.get("normalizer", None)  # NormalizerBundle or None
-_global_scaler = getattr(_normalizer, "global_scaler", None)
 
-# ============== IMPORT EXTRACTOR ==============
-try:
-    extractor_mod = __import__(EXTRACTOR_MODULE, fromlist=[EXTRACTOR_FUNC])
-    _extractor_func = getattr(extractor_mod, EXTRACTOR_FUNC)
-except Exception as e:
-    raise RuntimeError(
-        f"Could not import {EXTRACTOR_FUNC} from {EXTRACTOR_MODULE}. "
-        f"Set EXTRACTOR_MODULE/EXTRACTOR_FUNC env vars or adapt the code. Error: {e}"
-    )
-
-# ============== FASTAPI ==============
 app = FastAPI(title="Focus Inference API (raw file version)", version="1.0")
 
-@app.get("/healthz")
-def healthz():
-    return {"status": "ok", "n_features": len(_features), "bundle": BUNDLE_PATH}
 
 @app.post("/calibrate_raw")
 async def calibrate_raw(user_id: str = Form(...),
@@ -69,8 +45,6 @@ async def calibrate_raw(user_id: str = Form(...),
     file2: UploadFile = File(..., description="eeg_Unfocussed"),
     file3: UploadFile = File(..., description="pupil_focussed"),
     file4: UploadFile = File(..., description="pupil_unfocused"),
-    allow_uncalibrated: Optional[bool] = Form(None),
-
 ):
     """
     Uploads two CSV files and a user ID.

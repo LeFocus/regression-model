@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 from typing import List, Dict, Optional, Tuple
 import aiofiles
@@ -116,9 +115,10 @@ async def predict_raw(
             status_code=400,
             detail="Invalid file type. Both files must be .csv"
         )
+    os.makedirs(output, exist_ok=True)
 
-    filepath1 = os.path.join(output, f"{user_id}_{eeg.filename}")
-    filepath2 = os.path.join(output, f"{user_id}_{pupil.filename}")
+    filepath1 = os.path.join(output, f"eeg.csv")
+    filepath2 = os.path.join(output, f"pupil.csv")
 
     try:
         async with aiofiles.open(filepath1, 'wb') as f_out:
@@ -154,9 +154,9 @@ async def predict_raw(
     values = run_inference.run_focus_inference(df, calibration_data)
 
     if calibration_data:
-        scores = values["scores"]
+        scores = values["scores_calibrated"]
     else:
-        scores = None
+        scores = values["scores_raw"]
 
     total = 0
     for item in scores:
